@@ -1,0 +1,733 @@
+openapi: 3.1.0
+info:
+  title: Consent-First Matching API
+  version: 0.1.0
+  description: |
+    Browser-first MVP API for a consent-first matching service.
+servers:
+  - url: /api/v1
+tags:
+  - name: onboarding
+  - name: profile
+  - name: matching
+  - name: safety
+  - name: admin
+paths:
+  /onboarding/age-gate:
+    post:
+      tags: [onboarding]
+      summary: Validate user age (18+)
+      operationId: ageGate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [birthDate]
+              properties:
+                birthDate:
+                  type: string
+                  format: date
+      responses:
+        "200":
+          description: Age gate result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiAgeGateResponse"
+
+  /onboarding/status:
+    get:
+      tags: [onboarding]
+      summary: Fetch onboarding completion status
+      operationId: onboardingStatus
+      responses:
+        "200":
+          description: Onboarding status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiOnboardingStatusResponse"
+
+  /terms/active:
+    get:
+      tags: [onboarding]
+      summary: Fetch active terms versions
+      operationId: activeTerms
+      responses:
+        "200":
+          description: Active terms list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiTermsResponse"
+
+  /terms/consent:
+    post:
+      tags: [onboarding]
+      summary: Save user consent for terms version
+      operationId: consentTerms
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [termsVersionId]
+              properties:
+                termsVersionId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Consent saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiOkResponse"
+
+  /me/profile:
+    get:
+      tags: [profile]
+      summary: Get own profile
+      operationId: getProfile
+      responses:
+        "200":
+          description: Profile payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiProfileResponse"
+    patch:
+      tags: [profile]
+      summary: Update own profile
+      operationId: patchProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfilePatchRequest"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiProfileResponse"
+
+  /me/consents:
+    get:
+      tags: [profile]
+      summary: Get own consent settings
+      operationId: getConsents
+      responses:
+        "200":
+          description: Consent list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiConsentResponse"
+    put:
+      tags: [profile]
+      summary: Replace own consent settings
+      operationId: putConsents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: "#/components/schemas/ConsentItem"
+      responses:
+        "200":
+          description: Consent list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiConsentResponse"
+
+  /me/boundaries:
+    get:
+      tags: [profile]
+      summary: Get own boundary settings
+      operationId: getBoundaries
+      responses:
+        "200":
+          description: Boundary list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiBoundaryResponse"
+    put:
+      tags: [profile]
+      summary: Replace own boundary settings
+      operationId: putBoundaries
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    $ref: "#/components/schemas/BoundaryItem"
+      responses:
+        "200":
+          description: Boundary list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiBoundaryResponse"
+
+  /discovery:
+    get:
+      tags: [matching]
+      summary: Discover candidate users
+      operationId: discovery
+      responses:
+        "200":
+          description: Candidate list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiDiscoveryResponse"
+
+  /likes/{targetUserId}:
+    post:
+      tags: [matching]
+      summary: Like target user
+      operationId: likeUser
+      parameters:
+        - name: targetUserId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Like accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiLikeResponse"
+    delete:
+      tags: [matching]
+      summary: Remove like
+      operationId: unlikeUser
+      parameters:
+        - name: targetUserId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Like removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiOkResponse"
+
+  /matches:
+    get:
+      tags: [matching]
+      summary: Get own matches
+      operationId: matches
+      responses:
+        "200":
+          description: Match list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMatchesResponse"
+
+  /conversations:
+    get:
+      tags: [matching]
+      summary: Get own conversations
+      operationId: conversations
+      responses:
+        "200":
+          description: Conversation list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiConversationsResponse"
+
+  /conversations/{conversationId}/messages:
+    get:
+      tags: [matching]
+      summary: Get conversation messages
+      operationId: getMessages
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessagesResponse"
+    post:
+      tags: [matching]
+      summary: Send message
+      operationId: sendMessage
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                  minLength: 1
+                  maxLength: 3000
+      responses:
+        "200":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiMessageSendResponse"
+
+  /blocks/{targetUserId}:
+    post:
+      tags: [safety]
+      summary: Block a user
+      operationId: blockUser
+      parameters:
+        - name: targetUserId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Block saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiOkResponse"
+    delete:
+      tags: [safety]
+      summary: Unblock a user
+      operationId: unblockUser
+      parameters:
+        - name: targetUserId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Block removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiOkResponse"
+
+  /reports:
+    post:
+      tags: [safety]
+      summary: Create report
+      operationId: reportUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetUserId, category, detail]
+              properties:
+                targetUserId:
+                  type: string
+                category:
+                  type: string
+                  enum: [harassment, impersonation, scam, illegal, other]
+                detail:
+                  type: string
+                  minLength: 10
+      responses:
+        "200":
+          description: Report accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiReportResponse"
+
+  /admin/reports:
+    get:
+      tags: [admin]
+      summary: List reports (admin only)
+      operationId: adminReports
+      responses:
+        "200":
+          description: Report list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiAdminReportsResponse"
+        "403":
+          description: Forbidden
+
+components:
+  schemas:
+    ApiOkResponse:
+      type: object
+      required: [ok, data]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        data:
+          type: object
+          properties:
+            success:
+              type: boolean
+              const: true
+
+    ApiErrorResponse:
+      type: object
+      required: [ok, error]
+      properties:
+        ok:
+          type: boolean
+          const: false
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+    UserProfile:
+      type: object
+      required: [id, nickname, age, region, kycStatus, visibility]
+      properties:
+        id:
+          type: string
+        nickname:
+          type: string
+        age:
+          type: integer
+        region:
+          type: string
+        bio:
+          type: string
+        kycStatus:
+          type: string
+          enum: [pending, verified, rejected]
+        visibility:
+          type: string
+          enum: [visible, hidden]
+
+    ProfilePatchRequest:
+      type: object
+      properties:
+        nickname:
+          type: string
+          minLength: 2
+          maxLength: 32
+        region:
+          type: string
+          minLength: 2
+          maxLength: 32
+        bio:
+          type: string
+          maxLength: 300
+        visibility:
+          type: string
+          enum: [visible, hidden]
+
+    ConsentItem:
+      type: object
+      required: [code, value]
+      properties:
+        code:
+          type: string
+        value:
+          type: string
+          enum: [allow, deny, discuss]
+
+    BoundaryItem:
+      type: object
+      required: [key, value]
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+
+    MatchItem:
+      type: object
+      required: [id, peerUserId, peerNickname, score]
+      properties:
+        id:
+          type: string
+        peerUserId:
+          type: string
+        peerNickname:
+          type: string
+        score:
+          type: number
+
+    ConversationItem:
+      type: object
+      required: [id, matchId, peerUserId, peerNickname]
+      properties:
+        id:
+          type: string
+        matchId:
+          type: string
+        peerUserId:
+          type: string
+        peerNickname:
+          type: string
+        lastMessage:
+          type: string
+
+    MessageItem:
+      type: object
+      required: [id, senderUserId, body, sentAt]
+      properties:
+        id:
+          type: string
+        senderUserId:
+          type: string
+        body:
+          type: string
+        sentAt:
+          type: string
+          format: date-time
+
+    ReportItem:
+      type: object
+      required: [id, reporterUserId, targetUserId, category, status, createdAt]
+      properties:
+        id:
+          type: string
+        reporterUserId:
+          type: string
+        targetUserId:
+          type: string
+        category:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiAgeGateResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            isAdult:
+              type: boolean
+
+    ApiOnboardingStatusResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          required: [hasAcceptedTerms, isAdult, kycStatus]
+          properties:
+            hasAcceptedTerms:
+              type: boolean
+            isAdult:
+              type: boolean
+            kycStatus:
+              type: string
+              enum: [pending, verified, rejected]
+
+    ApiTermsResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            terms:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  type:
+                    type: string
+                  version:
+                    type: string
+                  contentUrl:
+                    type: string
+
+    ApiProfileResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            profile:
+              $ref: "#/components/schemas/UserProfile"
+
+    ApiConsentResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ConsentItem"
+
+    ApiBoundaryResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/BoundaryItem"
+
+    ApiDiscoveryResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            users:
+              type: array
+              items:
+                $ref: "#/components/schemas/UserProfile"
+
+    ApiLikeResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            matched:
+              type: boolean
+            matchId:
+              type: string
+              nullable: true
+
+    ApiMatchesResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            matches:
+              type: array
+              items:
+                $ref: "#/components/schemas/MatchItem"
+
+    ApiConversationsResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            conversations:
+              type: array
+              items:
+                $ref: "#/components/schemas/ConversationItem"
+
+    ApiMessagesResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            messages:
+              type: array
+              items:
+                $ref: "#/components/schemas/MessageItem"
+
+    ApiMessageSendResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            message:
+              $ref: "#/components/schemas/MessageItem"
+
+    ApiReportResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            report:
+              $ref: "#/components/schemas/ReportItem"
+
+    ApiAdminReportsResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            reports:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReportItem"
