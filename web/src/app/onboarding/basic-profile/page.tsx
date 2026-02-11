@@ -175,7 +175,7 @@ export default function BasicProfilePage() {
               value={gender}
               onChange={(event) => setGender(event.target.value as Gender)}
               disabled={isGenderLocked}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
             >
               {genderOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -195,7 +195,7 @@ export default function BasicProfilePage() {
                 value={year}
                 onChange={(event) => setYear(Number(event.target.value))}
                 disabled={isBirthDateLocked}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
               >
                 {years.map((value) => (
                   <option key={value} value={value}>
@@ -207,7 +207,7 @@ export default function BasicProfilePage() {
                 value={month}
                 onChange={(event) => setMonth(Number(event.target.value))}
                 disabled={isBirthDateLocked}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
               >
                 {monthOptions.map((value) => (
                   <option key={value} value={value}>
@@ -219,7 +219,7 @@ export default function BasicProfilePage() {
                 value={day}
                 onChange={(event) => setDay(Number(event.target.value))}
                 disabled={isBirthDateLocked}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 disabled:cursor-not-allowed disabled:bg-gray-100"
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
               >
                 {dayOptions.map((value) => (
                   <option key={value} value={value}>

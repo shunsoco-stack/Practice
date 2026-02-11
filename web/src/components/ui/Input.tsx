@@ -19,7 +19,7 @@ export default function Input({
         </label>
       )}
       <input
-        className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors duration-200
+        className={`w-full rounded-lg border bg-white px-3 py-2 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none transition-colors duration-200 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500
           ${
             error
               ? "border-red-500 focus:border-red-600 focus:ring-2 focus:ring-red-200"
