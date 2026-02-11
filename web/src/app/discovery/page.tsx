@@ -41,33 +41,60 @@ export default function DiscoveryPage() {
     [selectedUser, users],
   );
 
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-
+  const fetchData = async () => {
     const [usersResponse, matchesResponse] = await Promise.all([
       api.get<{ users: DiscoveryUser[] }>("/api/v1/discovery"),
       api.get<{ matches: MatchItem[] }>("/api/v1/matches"),
     ]);
 
     if (!usersResponse.ok) {
-      setError(usersResponse.error.message);
-      setLoading(false);
-      return;
+      return { ok: false as const, error: usersResponse.error.message };
     }
     if (!matchesResponse.ok) {
-      setError(matchesResponse.error.message);
+      return { ok: false as const, error: matchesResponse.error.message };
+    }
+
+    return {
+      ok: true as const,
+      users: usersResponse.data.users,
+      matches: matchesResponse.data.matches,
+    };
+  };
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    const result = await fetchData();
+    if (!result.ok) {
+      setError(result.error);
       setLoading(false);
       return;
     }
-
-    setUsers(usersResponse.data.users);
-    setMatches(matchesResponse.data.matches);
+    setUsers(result.users);
+    setMatches(result.matches);
     setLoading(false);
   };
 
   useEffect(() => {
-    void loadData();
+    let active = true;
+    const initialLoad = async () => {
+      const result = await fetchData();
+      if (!active) {
+        return;
+      }
+      if (!result.ok) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+      setUsers(result.users);
+      setMatches(result.matches);
+      setLoading(false);
+    };
+    void initialLoad();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleLike = async (targetUserId: string) => {
