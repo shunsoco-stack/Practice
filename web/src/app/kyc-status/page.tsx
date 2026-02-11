@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { api } from "@/lib/client/api";
@@ -17,35 +17,44 @@ interface OnboardingStatus {
   hasAcceptedTerms: boolean;
   isAdult: boolean;
   kycStatus: "pending" | "verified" | "rejected";
+  kycFlowStatus: DisplayKycStatus;
 }
 
 function toDisplayStatus(status: OnboardingStatus): DisplayKycStatus {
   if (!status.hasAcceptedTerms) {
     return "not_started";
   }
-  if (status.kycStatus === "verified") {
-    return "verified";
-  }
-  if (status.kycStatus === "rejected") {
-    return "rejected";
-  }
-  return "under_review";
+  return status.kycFlowStatus;
 }
 
 export default function KycStatusPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState<DisplayKycStatus>("not_started");
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
+      const returnedStatus = searchParams.get("kyc");
       const response = await api.get<OnboardingStatus>("/api/v1/onboarding/status");
       if (!active) {
         return;
       }
       if (response.ok) {
         setStatus(toDisplayStatus(response.data));
+      } else {
+        setError(response.error.message);
+      }
+      if (returnedStatus === "verified") {
+        setInfo("本人確認が承認されました。");
+      } else if (returnedStatus === "rejected") {
+        setInfo("本人確認が否認されました。再申請してください。");
+      } else {
+        setInfo(null);
       }
       setLoading(false);
     };
@@ -53,6 +62,25 @@ export default function KycStatusPage() {
     return () => {
       active = false;
     };
+  }, [searchParams]);
+
+  const startKyc = useCallback(async () => {
+    setProcessing(true);
+    setError(null);
+    const response = await api.post<{
+      sessionId: string;
+      status: "in_progress" | "under_review" | "verified" | "rejected";
+      provider: "mock" | "external";
+      redirectUrl: string;
+    }>("/api/v1/onboarding/kyc/session", {
+      returnPath: "/kyc-status",
+    });
+    setProcessing(false);
+    if (!response.ok) {
+      setError(response.error.message);
+      return;
+    }
+    window.location.assign(response.data.redirectUrl);
   }, []);
 
   const statusConfig = useMemo(
@@ -65,7 +93,7 @@ export default function KycStatusPage() {
         title: "本人確認が必要です",
         description:
           "安全なマッチング環境のため、本人確認（KYC）を完了してください。外部サービスを利用した簡単な手続きです。",
-        action: { label: "本人確認を開始", onClick: () => window.open("https://example-ekyc-service.com", "_blank") },
+        action: { label: "本人確認を開始", onClick: () => void startKyc() },
       },
       in_progress: {
         badge: { variant: "info" as const, label: "申請中" },
@@ -75,7 +103,7 @@ export default function KycStatusPage() {
         title: "本人確認を申請中",
         description:
           "外部eKYCサービスでの手続きを完了してください。手続き完了後に審査が開始されます。",
-        action: { label: "手続きを続ける", onClick: () => window.open("https://example-ekyc-service.com", "_blank") },
+        action: { label: "手続きを続ける", onClick: () => void startKyc() },
       },
       under_review: {
         badge: { variant: "warning" as const, label: "審査中" },
@@ -104,10 +132,10 @@ export default function KycStatusPage() {
         iconColor: "text-red-600",
         title: "本人確認が否認されました",
         description: "提出された書類に問題がありました。詳細をご確認の上、再度申請してください。",
-        action: { label: "再申請する", onClick: () => window.open("https://example-ekyc-service.com", "_blank") },
+        action: { label: "再申請する", onClick: () => void startKyc() },
       },
     }),
-    [router],
+    [router, startKyc],
   );
 
   const config = statusConfig[status];
@@ -156,6 +184,17 @@ export default function KycStatusPage() {
 
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="p-6">
+            {error && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+            {info && (
+              <div className="mb-4 rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-700">
+                {info}
+              </div>
+            )}
+
             <div className="mb-6 flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${config.iconBg}`}>
@@ -207,8 +246,13 @@ export default function KycStatusPage() {
             </div>
 
             {config.action && (
-              <Button fullWidth size="lg" onClick={config.action.onClick} disabled={loading}>
-                {loading ? "確認中..." : config.action.label}
+              <Button
+                fullWidth
+                size="lg"
+                onClick={config.action.onClick}
+                disabled={loading || processing}
+              >
+                {processing ? "遷移中..." : loading ? "確認中..." : config.action.label}
               </Button>
             )}
 

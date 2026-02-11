@@ -4,6 +4,9 @@ import type {
   BoundaryItem,
   ConsentItem,
   Conversation,
+  KycFlowStatus,
+  KycSession,
+  KycSessionStatus,
   KycStatus,
   Like,
   Match,
@@ -42,7 +45,15 @@ interface ConversationView {
   lastMessage?: string;
 }
 
+interface KycSessionCreateResult {
+  sessionId: string;
+  status: KycSessionStatus;
+  provider: KycSession["provider"];
+  redirectUrl: string;
+}
+
 const now = () => new Date().toISOString();
+const DEFAULT_KYC_RETURN_PATH = "/kyc-status";
 
 function isAdultByBirthDate(birthDate: string): boolean {
   const dob = new Date(birthDate);
@@ -64,6 +75,8 @@ class InMemoryStore {
   private roles = new Map<string, RoleBinding["role"]>();
   private termsVersions = new Map<string, TermsVersion>();
   private termsConsents: TermsConsent[] = [];
+  private kycSessions = new Map<string, KycSession>();
+  private latestKycSessionByUser = new Map<string, string>();
   private consents = new Map<string, ConsentItem[]>();
   private boundaries = new Map<string, BoundaryItem[]>();
   private likes: Like[] = [];
@@ -87,7 +100,7 @@ class InMemoryStore {
         region: "tokyo",
         bio: "I value clear communication and boundaries.",
         status: "active",
-        kycStatus: "verified",
+        kycStatus: "pending",
         visibility: "visible",
         createdAt: baseTime,
         updatedAt: baseTime,
@@ -261,6 +274,183 @@ class InMemoryStore {
     }
   }
 
+  private sanitizeReturnPath(returnPath?: string): string {
+    if (!returnPath || !returnPath.startsWith("/")) {
+      return DEFAULT_KYC_RETURN_PATH;
+    }
+    return returnPath;
+  }
+
+  private resolveKycProvider(): KycSession["provider"] {
+    if (
+      process.env.KYC_PROVIDER_MODE === "external" &&
+      process.env.KYC_EXTERNAL_BASE_URL
+    ) {
+      return "external";
+    }
+    return "mock";
+  }
+
+  private buildKycRedirectUrl(input: {
+    provider: KycSession["provider"];
+    sessionId: string;
+    userId: string;
+    returnPath: string;
+  }): string {
+    if (input.provider === "external") {
+      const externalUrl = new URL(process.env.KYC_EXTERNAL_BASE_URL!);
+      externalUrl.searchParams.set("session_id", input.sessionId);
+      externalUrl.searchParams.set("user_id", input.userId);
+      externalUrl.searchParams.set("return_path", input.returnPath);
+      return externalUrl.toString();
+    }
+    const local = new URLSearchParams();
+    local.set("sessionId", input.sessionId);
+    local.set("returnPath", input.returnPath);
+    return `/ekyc/mock?${local.toString()}`;
+  }
+
+  private getLatestKycSession(userId: string): KycSession | null {
+    const sessionId = this.latestKycSessionByUser.get(userId);
+    if (!sessionId) {
+      return null;
+    }
+    return this.kycSessions.get(sessionId) ?? null;
+  }
+
+  private setUserKycStatus(userId: string, status: KycStatus): void {
+    const user = this.getUser(userId);
+    this.users.set(userId, {
+      ...user,
+      kycStatus: status,
+      updatedAt: now(),
+    });
+  }
+
+  createKycSession(
+    userId: string,
+    options?: { returnPath?: string },
+  ): KycSessionCreateResult {
+    const user = this.getUser(userId);
+    if (!this.isAdult(user.birthDate)) {
+      throw new Error("underage_not_allowed");
+    }
+    if (!this.hasAcceptedAllActiveTerms(userId)) {
+      throw new Error("terms_not_accepted");
+    }
+    if (user.kycStatus === "verified") {
+      throw new Error("kyc_already_verified");
+    }
+
+    const existing = this.getLatestKycSession(userId);
+    if (existing && existing.status === "in_progress") {
+      return {
+        sessionId: existing.id,
+        status: existing.status,
+        provider: existing.provider,
+        redirectUrl: existing.redirectUrl,
+      };
+    }
+
+    const returnPath = this.sanitizeReturnPath(options?.returnPath);
+    const sessionId = randomUUID();
+    const provider = this.resolveKycProvider();
+    const redirectUrl = this.buildKycRedirectUrl({
+      provider,
+      sessionId,
+      userId,
+      returnPath,
+    });
+    const timestamp = now();
+    const session: KycSession = {
+      id: sessionId,
+      userId,
+      provider,
+      status: "in_progress",
+      returnPath,
+      redirectUrl,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.kycSessions.set(sessionId, session);
+    this.latestKycSessionByUser.set(userId, sessionId);
+    this.setUserKycStatus(userId, "pending");
+    return {
+      sessionId: session.id,
+      status: session.status,
+      provider: session.provider,
+      redirectUrl: session.redirectUrl,
+    };
+  }
+
+  getKycSessionForUser(userId: string, sessionId: string): KycSession {
+    this.getUser(userId);
+    const session = this.kycSessions.get(sessionId);
+    if (!session) {
+      throw new Error("kyc_session_not_found");
+    }
+    if (session.userId !== userId) {
+      throw new Error("forbidden");
+    }
+    return session;
+  }
+
+  markKycSessionUnderReview(userId: string, sessionId: string): KycSession {
+    const session = this.getKycSessionForUser(userId, sessionId);
+    if (session.status !== "in_progress") {
+      throw new Error("invalid_kyc_session_state");
+    }
+    const next: KycSession = {
+      ...session,
+      status: "under_review",
+      updatedAt: now(),
+    };
+    this.kycSessions.set(sessionId, next);
+    this.setUserKycStatus(userId, "pending");
+    return next;
+  }
+
+  applyKycWebhook(input: {
+    sessionId: string;
+    status: KycSessionStatus;
+  }): KycSession {
+    const session = this.kycSessions.get(input.sessionId);
+    if (!session) {
+      throw new Error("kyc_session_not_found");
+    }
+    const next: KycSession = {
+      ...session,
+      status: input.status,
+      updatedAt: now(),
+    };
+    this.kycSessions.set(next.id, next);
+
+    if (input.status === "verified") {
+      this.setUserKycStatus(next.userId, "verified");
+    } else if (input.status === "rejected") {
+      this.setUserKycStatus(next.userId, "rejected");
+    } else {
+      this.setUserKycStatus(next.userId, "pending");
+    }
+    return next;
+  }
+
+  getKycFlowStatus(userId: string): KycFlowStatus {
+    const user = this.getUser(userId);
+    if (user.kycStatus === "verified") {
+      return "verified";
+    }
+    if (user.kycStatus === "rejected") {
+      return "rejected";
+    }
+
+    const session = this.getLatestKycSession(userId);
+    if (!session) {
+      return "not_started";
+    }
+    return session.status;
+  }
+
   hasAcceptedAllActiveTerms(userId: string): boolean {
     const active = this.getActiveTerms();
     return active.every((version) =>
@@ -275,12 +465,14 @@ class InMemoryStore {
     hasAcceptedTerms: boolean;
     isAdult: boolean;
     kycStatus: KycStatus;
+    kycFlowStatus: KycFlowStatus;
   } {
     const user = this.getUser(userId);
     return {
       hasAcceptedTerms: this.hasAcceptedAllActiveTerms(userId),
       isAdult: this.isAdult(user.birthDate),
       kycStatus: user.kycStatus,
+      kycFlowStatus: this.getKycFlowStatus(userId),
     };
   }
 

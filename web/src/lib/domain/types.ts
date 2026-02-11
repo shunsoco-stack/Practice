@@ -1,5 +1,16 @@
 export type UserStatus = "active" | "suspended" | "deleted";
 export type KycStatus = "pending" | "verified" | "rejected";
+export type KycFlowStatus =
+  | "not_started"
+  | "in_progress"
+  | "under_review"
+  | "verified"
+  | "rejected";
+export type KycSessionStatus =
+  | "in_progress"
+  | "under_review"
+  | "verified"
+  | "rejected";
 export type ProfileVisibility = "visible" | "hidden";
 export type ConsentValue = "allow" | "deny" | "discuss";
 export type MatchStatus = "active" | "closed";
@@ -52,6 +63,17 @@ export interface TermsConsent {
   userId: string;
   termsVersionId: string;
   consentedAt: string;
+}
+
+export interface KycSession {
+  id: string;
+  userId: string;
+  provider: "mock" | "external";
+  status: KycSessionStatus;
+  returnPath: string;
+  redirectUrl: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Like {

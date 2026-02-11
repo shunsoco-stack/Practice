@@ -3,6 +3,9 @@ import Link from "next/link";
 const endpoints = [
   ["POST", "/api/v1/onboarding/age-gate"],
   ["GET", "/api/v1/onboarding/status"],
+  ["POST", "/api/v1/onboarding/kyc/session"],
+  ["GET", "/api/v1/onboarding/kyc/session/{sessionId}"],
+  ["POST", "/api/v1/onboarding/kyc/session/{sessionId}/submit"],
   ["GET", "/api/v1/terms/active"],
   ["POST", "/api/v1/terms/consent"],
   ["GET/PATCH", "/api/v1/me/profile"],
@@ -16,6 +19,7 @@ const endpoints = [
   ["POST/DELETE", "/api/v1/blocks/{targetUserId}"],
   ["POST", "/api/v1/reports"],
   ["GET", "/api/v1/admin/reports"],
+  ["POST", "/api/v1/webhooks/kyc"],
 ];
 
 export default function ApiDocPage() {

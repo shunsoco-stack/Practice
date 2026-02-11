@@ -8,6 +8,15 @@ export const termsConsentSchema = z.object({
   termsVersionId: z.string().min(3),
 });
 
+export const createKycSessionSchema = z.object({
+  returnPath: z.string().startsWith("/").max(200).optional(),
+});
+
+export const kycWebhookSchema = z.object({
+  sessionId: z.string().uuid(),
+  status: z.enum(["in_progress", "under_review", "verified", "rejected"]),
+});
+
 export const profilePatchSchema = z
   .object({
     nickname: z.string().trim().min(2).max(32).optional(),

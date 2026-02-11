@@ -69,6 +69,28 @@ export function mapDomainError(error: unknown): NextResponse {
       return jsonError("user_not_found", "User not found.", 404);
     case "terms_version_not_found":
       return jsonError("terms_version_not_found", "Terms version was not found.", 404);
+    case "terms_not_accepted":
+      return jsonError(
+        "terms_not_accepted",
+        "Accept all active terms before starting eKYC.",
+        409,
+      );
+    case "underage_not_allowed":
+      return jsonError(
+        "underage_not_allowed",
+        "Only users aged 18+ can complete onboarding.",
+        403,
+      );
+    case "kyc_already_verified":
+      return jsonError("kyc_already_verified", "KYC is already verified.", 409);
+    case "kyc_session_not_found":
+      return jsonError("kyc_session_not_found", "KYC session not found.", 404);
+    case "invalid_kyc_session_state":
+      return jsonError(
+        "invalid_kyc_session_state",
+        "KYC session is not in a valid state for this operation.",
+        409,
+      );
     case "invalid_target":
       return jsonError("invalid_target", "Invalid target user.", 400);
     case "blocked_relationship":

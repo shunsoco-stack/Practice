@@ -15,6 +15,7 @@ npm run build
 
 - `/` - overview dashboard
 - `/playground` - browser API testing screen
+- `/ekyc/mock` - mock eKYC provider flow
 - `/docs/architecture`
 - `/docs/runbook`
 - `/docs/api`

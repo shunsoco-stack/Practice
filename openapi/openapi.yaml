@@ -50,6 +50,92 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiOnboardingStatusResponse"
 
+  /onboarding/kyc/session:
+    post:
+      tags: [onboarding]
+      summary: Create or continue eKYC session
+      operationId: createKycSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                returnPath:
+                  type: string
+      responses:
+        "200":
+          description: KYC session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKycSessionResponse"
+
+  /onboarding/kyc/session/{sessionId}:
+    get:
+      tags: [onboarding]
+      summary: Fetch current user KYC session
+      operationId: getKycSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: KYC session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKycSessionResponse"
+
+  /onboarding/kyc/session/{sessionId}/submit:
+    post:
+      tags: [onboarding]
+      summary: Mark KYC session as under review
+      operationId: submitKycSession
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKycSessionSubmitResponse"
+
+  /webhooks/kyc:
+    post:
+      tags: [onboarding]
+      summary: KYC provider webhook callback
+      operationId: kycWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sessionId, status]
+              properties:
+                sessionId:
+                  type: string
+                status:
+                  type: string
+                  enum: [in_progress, under_review, verified, rejected]
+      responses:
+        "200":
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKycSessionSubmitResponse"
+
   /terms/active:
     get:
       tags: [onboarding]
@@ -562,7 +648,7 @@ components:
           type: boolean
         data:
           type: object
-          required: [hasAcceptedTerms, isAdult, kycStatus]
+          required: [hasAcceptedTerms, isAdult, kycStatus, kycFlowStatus]
           properties:
             hasAcceptedTerms:
               type: boolean
@@ -571,6 +657,48 @@ components:
             kycStatus:
               type: string
               enum: [pending, verified, rejected]
+            kycFlowStatus:
+              type: string
+              enum: [not_started, in_progress, under_review, verified, rejected]
+
+    ApiKycSessionResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          required: [sessionId, status, provider, redirectUrl]
+          properties:
+            sessionId:
+              type: string
+            status:
+              type: string
+              enum: [in_progress, under_review, verified, rejected]
+            provider:
+              type: string
+              enum: [mock, external]
+            redirectUrl:
+              type: string
+            returnPath:
+              type: string
+
+    ApiKycSessionSubmitResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          required: [sessionId, status]
+          properties:
+            sessionId:
+              type: string
+            status:
+              type: string
+              enum: [in_progress, under_review, verified, rejected]
+            userId:
+              type: string
 
     ApiTermsResponse:
       type: object
