@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
@@ -9,17 +9,18 @@ import { api } from "@/lib/client/api";
 
 export default function SetPasswordPage() {
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(null);
+  const token = useMemo(
+    () =>
+      typeof window === "undefined"
+        ? null
+        : new URLSearchParams(window.location.search).get("token"),
+    [],
+  );
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
-  useEffect(() => {
-    const currentToken = new URLSearchParams(window.location.search).get("token");
-    setToken(currentToken);
-  }, []);
 
   const submit = async () => {
     if (!token) {

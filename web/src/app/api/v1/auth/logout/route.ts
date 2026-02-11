@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { jsonOk } from "@/lib/api/http";
 import { AUTH_SESSION_COOKIE_NAME } from "@/lib/auth/session";
 import { store } from "@/lib/domain/store";
 
