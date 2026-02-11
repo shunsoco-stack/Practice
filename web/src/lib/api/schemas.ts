@@ -8,6 +8,12 @@ export const termsConsentSchema = z.object({
   termsVersionId: z.string().min(3),
 });
 
+export const basicProfileSchema = z.object({
+  nickname: z.string().trim().min(2).max(32),
+  gender: z.enum(["male", "female", "other", "not_specified"]),
+  birthDate: z.iso.date(),
+});
+
 export const createKycSessionSchema = z.object({
   returnPath: z.string().startsWith("/").max(200).optional(),
 });
@@ -22,6 +28,8 @@ export const profilePatchSchema = z
     nickname: z.string().trim().min(2).max(32).optional(),
     region: z.string().trim().min(2).max(32).optional(),
     bio: z.string().trim().max(300).optional(),
+    topPhotoUrl: z.string().trim().max(2_000_000).nullable().optional(),
+    subPhotoUrls: z.array(z.string().trim().max(2_000_000)).max(3).optional(),
     visibility: z.enum(["visible", "hidden"]).optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {

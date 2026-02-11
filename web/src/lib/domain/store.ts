@@ -4,6 +4,7 @@ import type {
   BoundaryItem,
   ConsentItem,
   Conversation,
+  Gender,
   KycFlowStatus,
   KycSession,
   KycSessionStatus,
@@ -22,7 +23,10 @@ import type {
 } from "@/lib/domain/types";
 
 type ProfilePatch = Partial<
-  Pick<User, "nickname" | "region" | "bio" | "visibility">
+  Pick<
+    User,
+    "nickname" | "region" | "bio" | "visibility" | "topPhotoUrl" | "subPhotoUrls"
+  >
 >;
 
 interface LikeResult {
@@ -50,6 +54,21 @@ interface KycSessionCreateResult {
   status: KycSessionStatus;
   provider: KycSession["provider"];
   redirectUrl: string;
+}
+
+interface BasicProfileInput {
+  nickname: string;
+  gender: Gender;
+  birthDate: string;
+}
+
+interface BasicProfileView {
+  nickname: string;
+  gender: Gender | null;
+  birthDate: string;
+  isGenderLocked: boolean;
+  isBirthDateLocked: boolean;
+  isCompleted: boolean;
 }
 
 const now = () => new Date().toISOString();
@@ -95,10 +114,15 @@ class InMemoryStore {
     const users: User[] = [
       {
         id: "u1",
-        nickname: "aya",
-        birthDate: "1995-04-12",
+        nickname: "new_user",
+        birthDate: "2000-01-01",
+        gender: null,
+        isGenderLocked: false,
+        isBirthDateLocked: false,
         region: "tokyo",
-        bio: "I value clear communication and boundaries.",
+        bio: "",
+        topPhotoUrl: null,
+        subPhotoUrls: [],
         status: "active",
         kycStatus: "pending",
         visibility: "visible",
@@ -109,8 +133,13 @@ class InMemoryStore {
         id: "u2",
         nickname: "mio",
         birthDate: "1994-08-02",
+        gender: "female",
+        isGenderLocked: true,
+        isBirthDateLocked: true,
         region: "kanagawa",
         bio: "Consent first. Looking for respectful chat.",
+        topPhotoUrl: null,
+        subPhotoUrls: [],
         status: "active",
         kycStatus: "verified",
         visibility: "visible",
@@ -121,8 +150,13 @@ class InMemoryStore {
         id: "u3",
         nickname: "rei",
         birthDate: "2002-02-11",
+        gender: "other",
+        isGenderLocked: true,
+        isBirthDateLocked: true,
         region: "chiba",
         bio: "KYC pending example account.",
+        topPhotoUrl: null,
+        subPhotoUrls: [],
         status: "active",
         kycStatus: "pending",
         visibility: "visible",
@@ -133,8 +167,13 @@ class InMemoryStore {
         id: "u4",
         nickname: "hana",
         birthDate: "1991-11-28",
+        gender: "female",
+        isGenderLocked: true,
+        isBirthDateLocked: true,
         region: "saitama",
         bio: "Quiet style and transparent expectations.",
+        topPhotoUrl: null,
+        subPhotoUrls: [],
         status: "active",
         kycStatus: "verified",
         visibility: "visible",
@@ -145,8 +184,13 @@ class InMemoryStore {
         id: "u_admin",
         nickname: "moderator",
         birthDate: "1990-01-01",
+        gender: "not_specified",
+        isGenderLocked: true,
+        isBirthDateLocked: true,
         region: "tokyo",
         bio: "internal moderation account",
+        topPhotoUrl: null,
+        subPhotoUrls: [],
         status: "active",
         kycStatus: "verified",
         visibility: "hidden",
@@ -338,6 +382,9 @@ class InMemoryStore {
     if (!this.hasAcceptedAllActiveTerms(userId)) {
       throw new Error("terms_not_accepted");
     }
+    if (!user.isGenderLocked || !user.isBirthDateLocked) {
+      throw new Error("onboarding_profile_incomplete");
+    }
     if (user.kycStatus === "verified") {
       throw new Error("kyc_already_verified");
     }
@@ -461,11 +508,53 @@ class InMemoryStore {
     );
   }
 
+  getBasicProfile(userId: string): BasicProfileView {
+    const user = this.getUser(userId);
+    return {
+      nickname: user.nickname,
+      gender: user.gender,
+      birthDate: user.birthDate,
+      isGenderLocked: user.isGenderLocked,
+      isBirthDateLocked: user.isBirthDateLocked,
+      isCompleted: user.isGenderLocked && user.isBirthDateLocked,
+    };
+  }
+
+  completeBasicProfile(userId: string, input: BasicProfileInput): BasicProfileView {
+    const user = this.getUser(userId);
+    if (!this.hasAcceptedAllActiveTerms(userId)) {
+      throw new Error("terms_not_accepted");
+    }
+    if (!this.isAdult(input.birthDate)) {
+      throw new Error("underage_not_allowed");
+    }
+
+    if (user.isGenderLocked && user.gender !== input.gender) {
+      throw new Error("immutable_gender");
+    }
+    if (user.isBirthDateLocked && user.birthDate !== input.birthDate) {
+      throw new Error("immutable_birth_date");
+    }
+
+    const nextUser: User = {
+      ...user,
+      nickname: input.nickname,
+      gender: user.isGenderLocked ? user.gender : input.gender,
+      birthDate: user.isBirthDateLocked ? user.birthDate : input.birthDate,
+      isGenderLocked: true,
+      isBirthDateLocked: true,
+      updatedAt: now(),
+    };
+    this.users.set(userId, nextUser);
+    return this.getBasicProfile(userId);
+  }
+
   getOnboardingStatus(userId: string): {
     hasAcceptedTerms: boolean;
     isAdult: boolean;
     kycStatus: KycStatus;
     kycFlowStatus: KycFlowStatus;
+    isBasicProfileCompleted: boolean;
   } {
     const user = this.getUser(userId);
     return {
@@ -473,6 +562,7 @@ class InMemoryStore {
       isAdult: this.isAdult(user.birthDate),
       kycStatus: user.kycStatus,
       kycFlowStatus: this.getKycFlowStatus(userId),
+      isBasicProfileCompleted: user.isGenderLocked && user.isBirthDateLocked,
     };
   }
 
@@ -484,12 +574,17 @@ class InMemoryStore {
     const user = this.getUser(userId);
     const nextVisibility: ProfileVisibility =
       patch.visibility ?? user.visibility;
+    const nextSubPhotoUrls = Array.isArray(patch.subPhotoUrls)
+      ? patch.subPhotoUrls.filter((url) => url.trim().length > 0).slice(0, 3)
+      : user.subPhotoUrls;
     const nextUser: User = {
       ...user,
       nickname: patch.nickname ?? user.nickname,
       region: patch.region ?? user.region,
       bio: patch.bio ?? user.bio,
       visibility: nextVisibility,
+      topPhotoUrl: patch.topPhotoUrl ?? user.topPhotoUrl,
+      subPhotoUrls: nextSubPhotoUrls,
       updatedAt: now(),
     };
     this.users.set(userId, nextUser);

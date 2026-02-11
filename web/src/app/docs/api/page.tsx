@@ -3,6 +3,7 @@ import Link from "next/link";
 const endpoints = [
   ["POST", "/api/v1/onboarding/age-gate"],
   ["GET", "/api/v1/onboarding/status"],
+  ["GET/POST", "/api/v1/onboarding/basic-profile"],
   ["POST", "/api/v1/onboarding/kyc/session"],
   ["GET", "/api/v1/onboarding/kyc/session/{sessionId}"],
   ["POST", "/api/v1/onboarding/kyc/session/{sessionId}/submit"],

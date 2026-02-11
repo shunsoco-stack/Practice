@@ -54,7 +54,14 @@ export default function Home() {
               onClick={() => router.push("/age-gate")}
               className="whitespace-nowrap rounded-full bg-gradient-to-r from-primary-500 to-accent-coral px-6 py-2.5 text-sm font-medium text-white shadow-lg shadow-primary-200 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary-300"
             >
-              無料ではじめる
+              はじめる
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/login")}
+              className="whitespace-nowrap rounded-full border border-primary-200 bg-white px-6 py-2.5 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+            >
+              ログイン
             </button>
           </nav>
         </div>
@@ -76,7 +83,14 @@ export default function Home() {
                 onClick={() => router.push("/age-gate")}
                 className="w-full whitespace-nowrap rounded-full bg-gradient-to-r from-primary-500 to-accent-coral px-6 py-3 text-sm font-medium text-white shadow-lg"
               >
-                無料ではじめる
+                はじめる
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/login")}
+                className="w-full whitespace-nowrap rounded-full border border-primary-200 bg-white px-6 py-3 text-sm font-medium text-primary-700"
+              >
+                ログイン
               </button>
             </nav>
           </div>
@@ -158,14 +172,10 @@ export default function Home() {
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    document
-                      .getElementById("how-it-works")
-                      ?.scrollIntoView({ behavior: "smooth" })
-                  }
-                  className="whitespace-nowrap rounded-full border-2 border-primary-200 bg-white px-8 py-4 text-base font-medium text-gray-700 transition-all duration-300 hover:border-primary-300 hover:bg-primary-50"
+                  onClick={() => router.push("/login")}
+                  className="whitespace-nowrap rounded-full border-2 border-primary-200 bg-white px-8 py-4 text-base font-medium text-primary-700 transition-all duration-300 hover:border-primary-300 hover:bg-primary-50"
                 >
-                  使い方を見る
+                  会員ログイン
                 </button>
               </div>
 

@@ -18,10 +18,14 @@ interface OnboardingStatus {
   isAdult: boolean;
   kycStatus: "pending" | "verified" | "rejected";
   kycFlowStatus: DisplayKycStatus;
+  isBasicProfileCompleted: boolean;
 }
 
 function toDisplayStatus(status: OnboardingStatus): DisplayKycStatus {
   if (!status.hasAcceptedTerms) {
+    return "not_started";
+  }
+  if (!status.isBasicProfileCompleted) {
     return "not_started";
   }
   return status.kycFlowStatus;
@@ -32,6 +36,7 @@ export default function KycStatusPage() {
   const [status, setStatus] = useState<DisplayKycStatus>("not_started");
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [isBasicProfileCompleted, setIsBasicProfileCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -47,7 +52,11 @@ export default function KycStatusPage() {
         return;
       }
       if (response.ok) {
+        setIsBasicProfileCompleted(response.data.isBasicProfileCompleted);
         setStatus(toDisplayStatus(response.data));
+        if (!response.data.isBasicProfileCompleted) {
+          setInfo("先に「名前・性別・生年月日」を設定してください。");
+        }
       } else {
         setError(response.error.message);
       }
@@ -92,10 +101,16 @@ export default function KycStatusPage() {
         icon: "ri-file-list-line",
         iconBg: "bg-gray-100",
         iconColor: "text-gray-600",
-        title: "本人確認が必要です",
-        description:
-          "安全なマッチング環境のため、本人確認（KYC）を完了してください。外部サービスを利用した簡単な手続きです。",
-        action: { label: "本人確認を開始", onClick: () => void startKyc() },
+        title: isBasicProfileCompleted ? "本人確認が必要です" : "基本情報を設定してください",
+        description: isBasicProfileCompleted
+          ? "安全なマッチング環境のため、本人確認（KYC）を完了してください。外部サービスを利用した簡単な手続きです。"
+          : "eKYCを開始する前に、名前・性別・生年月日を設定してください。",
+        action: isBasicProfileCompleted
+          ? { label: "本人確認を開始", onClick: () => void startKyc() }
+          : {
+              label: "基本情報を設定",
+              onClick: () => router.push("/onboarding/basic-profile"),
+            },
       },
       in_progress: {
         badge: { variant: "info" as const, label: "申請中" },
@@ -137,7 +152,7 @@ export default function KycStatusPage() {
         action: { label: "再申請する", onClick: () => void startKyc() },
       },
     }),
-    [router, startKyc],
+    [isBasicProfileCompleted, router, startKyc],
   );
 
   const config = statusConfig[status];

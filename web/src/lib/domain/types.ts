@@ -6,6 +6,7 @@ export type KycFlowStatus =
   | "under_review"
   | "verified"
   | "rejected";
+export type Gender = "male" | "female" | "other" | "not_specified";
 export type KycSessionStatus =
   | "in_progress"
   | "under_review"
@@ -29,8 +30,13 @@ export interface User {
   id: string;
   nickname: string;
   birthDate: string; // YYYY-MM-DD
+  gender: Gender | null;
+  isGenderLocked: boolean;
+  isBirthDateLocked: boolean;
   region: string;
   bio: string;
+  topPhotoUrl: string | null;
+  subPhotoUrls: string[];
   status: UserStatus;
   kycStatus: KycStatus;
   visibility: ProfileVisibility;

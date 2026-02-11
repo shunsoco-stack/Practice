@@ -55,7 +55,7 @@ export default function TermsPage() {
           return;
         }
       }
-      router.push("/kyc-status");
+      router.push("/onboarding/basic-profile");
     } finally {
       setLoading(false);
     }

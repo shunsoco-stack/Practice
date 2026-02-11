@@ -75,6 +75,12 @@ export function mapDomainError(error: unknown): NextResponse {
         "Accept all active terms before starting eKYC.",
         409,
       );
+    case "onboarding_profile_incomplete":
+      return jsonError(
+        "onboarding_profile_incomplete",
+        "Set nickname, gender, and birth date before starting eKYC.",
+        409,
+      );
     case "underage_not_allowed":
       return jsonError(
         "underage_not_allowed",
@@ -89,6 +95,18 @@ export function mapDomainError(error: unknown): NextResponse {
       return jsonError(
         "invalid_kyc_session_state",
         "KYC session is not in a valid state for this operation.",
+        409,
+      );
+    case "immutable_gender":
+      return jsonError(
+        "immutable_gender",
+        "Gender cannot be changed after initial registration.",
+        409,
+      );
+    case "immutable_birth_date":
+      return jsonError(
+        "immutable_birth_date",
+        "Birth date cannot be changed after initial registration.",
         409,
       );
     case "invalid_target":

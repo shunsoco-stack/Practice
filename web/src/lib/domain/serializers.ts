@@ -16,8 +16,14 @@ export function toUserProfileDto(user: User): {
   id: string;
   nickname: string;
   age: number;
+  birthDate: string;
+  gender: User["gender"];
+  isGenderLocked: boolean;
+  isBirthDateLocked: boolean;
   region: string;
   bio: string;
+  topPhotoUrl: string | null;
+  subPhotoUrls: string[];
   kycStatus: User["kycStatus"];
   visibility: User["visibility"];
 } {
@@ -25,8 +31,14 @@ export function toUserProfileDto(user: User): {
     id: user.id,
     nickname: user.nickname,
     age: calculateAge(user.birthDate),
+    birthDate: user.birthDate,
+    gender: user.gender,
+    isGenderLocked: user.isGenderLocked,
+    isBirthDateLocked: user.isBirthDateLocked,
     region: user.region,
     bio: user.bio,
+    topPhotoUrl: user.topPhotoUrl,
+    subPhotoUrls: user.subPhotoUrls,
     kycStatus: user.kycStatus,
     visibility: user.visibility,
   };

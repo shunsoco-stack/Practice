@@ -50,6 +50,46 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiOnboardingStatusResponse"
 
+  /onboarding/basic-profile:
+    get:
+      tags: [onboarding]
+      summary: Get onboarding basic profile information
+      operationId: getBasicProfile
+      responses:
+        "200":
+          description: Basic profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiBasicProfileResponse"
+    post:
+      tags: [onboarding]
+      summary: Set onboarding basic profile and lock gender/birth date
+      operationId: setBasicProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nickname, gender, birthDate]
+              properties:
+                nickname:
+                  type: string
+                gender:
+                  type: string
+                  enum: [male, female, other, not_specified]
+                birthDate:
+                  type: string
+                  format: date
+      responses:
+        "200":
+          description: Basic profile saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiBasicProfileResponse"
+
   /onboarding/kyc/session:
     post:
       tags: [onboarding]
@@ -522,10 +562,28 @@ components:
           type: string
         age:
           type: integer
+        birthDate:
+          type: string
+          format: date
+        gender:
+          type: string
+          nullable: true
+          enum: [male, female, other, not_specified]
+        isGenderLocked:
+          type: boolean
+        isBirthDateLocked:
+          type: boolean
         region:
           type: string
         bio:
           type: string
+        topPhotoUrl:
+          type: string
+          nullable: true
+        subPhotoUrls:
+          type: array
+          items:
+            type: string
         kycStatus:
           type: string
           enum: [pending, verified, rejected]
@@ -547,6 +605,14 @@ components:
         bio:
           type: string
           maxLength: 300
+        topPhotoUrl:
+          type: string
+          nullable: true
+        subPhotoUrls:
+          type: array
+          maxItems: 3
+          items:
+            type: string
         visibility:
           type: string
           enum: [visible, hidden]
@@ -648,7 +714,7 @@ components:
           type: boolean
         data:
           type: object
-          required: [hasAcceptedTerms, isAdult, kycStatus, kycFlowStatus]
+          required: [hasAcceptedTerms, isAdult, kycStatus, kycFlowStatus, isBasicProfileCompleted]
           properties:
             hasAcceptedTerms:
               type: boolean
@@ -660,6 +726,41 @@ components:
             kycFlowStatus:
               type: string
               enum: [not_started, in_progress, under_review, verified, rejected]
+            isBasicProfileCompleted:
+              type: boolean
+
+    ApiBasicProfileResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          required:
+            [
+              nickname,
+              gender,
+              birthDate,
+              isGenderLocked,
+              isBirthDateLocked,
+              isCompleted,
+            ]
+          properties:
+            nickname:
+              type: string
+            gender:
+              type: string
+              nullable: true
+              enum: [male, female, other, not_specified]
+            birthDate:
+              type: string
+              format: date
+            isGenderLocked:
+              type: boolean
+            isBirthDateLocked:
+              type: boolean
+            isCompleted:
+              type: boolean
 
     ApiKycSessionResponse:
       type: object
