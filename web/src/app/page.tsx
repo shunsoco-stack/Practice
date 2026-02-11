@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -187,9 +188,12 @@ export default function Home() {
             <div className="relative hidden md:block">
               <div className="relative mx-auto aspect-square w-full max-w-md">
                 <div className="absolute inset-4 overflow-hidden rounded-3xl bg-gradient-to-br from-primary-100 to-accent-peach/30 shadow-2xl shadow-primary-200/30">
-                  <img
+                  <Image
                     src="https://readdy.ai/api/search-image?query=A%20warm%20and%20romantic%20illustration%20of%20two%20people%20having%20a%20pleasant%20conversation%20at%20a%20cozy%20cafe%2C%20soft%20pastel%20colors%2C%20pink%20and%20peach%20tones%2C%20gentle%20lighting%2C%20modern%20minimalist%20style%2C%20happy%20atmosphere%2C%20clean%20background%20with%20subtle%20heart%20shapes%2C%20illustration%20art%20style&width=600&height=600&seq=hero1&orientation=squarish"
                     alt="安心して会話できる出会いのイメージ"
+                    fill
+                    unoptimized
+                    sizes="(min-width: 1024px) 420px, (min-width: 768px) 360px, 100vw"
                     className="h-full w-full object-cover object-top"
                   />
                 </div>
@@ -354,9 +358,12 @@ export default function Home() {
             <div className="relative hidden md:block">
               <div className="relative mx-auto aspect-square w-full max-w-md">
                 <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary-200/50 to-accent-peach/30" />
-                <img
+                <Image
                   src="https://readdy.ai/api/search-image?query=A%20warm%20and%20friendly%20illustration%20showing%20safety%20and%20protection%20concept%2C%20a%20shield%20with%20heart%20symbol%2C%20soft%20pastel%20pink%20and%20peach%20colors%2C%20gentle%20and%20reassuring%20atmosphere%2C%20modern%20flat%20illustration%20style%2C%20clean%20minimal%20background%2C%20trust%20and%20security%20theme&width=500&height=500&seq=safety1&orientation=squarish"
                   alt="安全・安心のイメージ"
+                  fill
+                  unoptimized
+                  sizes="(min-width: 1024px) 420px, (min-width: 768px) 360px, 100vw"
                   className="relative h-full w-full rounded-3xl object-cover object-top"
                 />
               </div>

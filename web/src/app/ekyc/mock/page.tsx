@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { api } from "@/lib/client/api";
@@ -16,7 +16,7 @@ interface SessionResponse {
   returnPath: string;
 }
 
-export default function MockEkycPage() {
+function MockEkycContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("sessionId");
@@ -32,20 +32,23 @@ export default function MockEkycPage() {
     [requestedReturnPath, session?.returnPath],
   );
 
-  const fetchSession = async (): Promise<
-    { ok: true; session: SessionResponse } | { ok: false; error: string }
-  > => {
-    if (!sessionId) {
-      return { ok: false, error: "sessionId が指定されていません。" };
-    }
-    const response = await api.get<SessionResponse>(
-      `/api/v1/onboarding/kyc/session/${sessionId}`,
-    );
-    if (!response.ok) {
-      return { ok: false, error: response.error.message };
-    }
-    return { ok: true, session: response.data };
-  };
+  const fetchSession = useCallback(
+    async (): Promise<
+      { ok: true; session: SessionResponse } | { ok: false; error: string }
+    > => {
+      if (!sessionId) {
+        return { ok: false, error: "sessionId が指定されていません。" };
+      }
+      const response = await api.get<SessionResponse>(
+        `/api/v1/onboarding/kyc/session/${sessionId}`,
+      );
+      if (!response.ok) {
+        return { ok: false, error: response.error.message };
+      }
+      return { ok: true, session: response.data };
+    },
+    [sessionId],
+  );
 
   const loadSession = async () => {
     const result = await fetchSession();
@@ -77,7 +80,7 @@ export default function MockEkycPage() {
     return () => {
       active = false;
     };
-  }, [sessionId]);
+  }, [fetchSession]);
 
   const submitDocuments = async () => {
     if (!sessionId) {
@@ -217,5 +220,21 @@ export default function MockEkycPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function MockEkycPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+          <Card className="w-full max-w-xl">
+            <p className="text-sm text-gray-700">eKYCセッションを準備中です...</p>
+          </Card>
+        </div>
+      }
+    >
+      <MockEkycContent />
+    </Suspense>
   );
 }
