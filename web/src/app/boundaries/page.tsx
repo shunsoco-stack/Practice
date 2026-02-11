@@ -179,7 +179,7 @@ export default function BoundariesPage() {
                 }}
                 placeholder="例: 深夜2時以降の連絡"
                 maxLength={50}
-                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
               />
               <Button onClick={addCustomBoundary} disabled={!customBoundary.trim()}>
                 追加

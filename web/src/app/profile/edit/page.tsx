@@ -273,7 +273,7 @@ export default function ProfileEditPage() {
                   onChange={(event) =>
                     setProfile({ ...profile, location: event.target.value })
                   }
-                  className="w-full cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                  className="w-full cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
                 >
                   <option value="">選択してください</option>
                   <option value="tokyo">東京都</option>
@@ -293,7 +293,7 @@ export default function ProfileEditPage() {
                   placeholder="あなたについて教えてください"
                   rows={4}
                   maxLength={500}
-                  className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+                  className="w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-900 placeholder:text-gray-400 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
                 />
                 <p className="mt-1 text-xs text-gray-500">{profile.bio.length}/500文字</p>
               </div>
