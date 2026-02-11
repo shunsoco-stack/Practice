@@ -54,9 +54,6 @@ export default function KycStatusPage() {
       if (response.ok) {
         setIsBasicProfileCompleted(response.data.isBasicProfileCompleted);
         setStatus(toDisplayStatus(response.data));
-        if (!response.data.isBasicProfileCompleted) {
-          setInfo("先に「名前・性別・生年月日」を設定してください。");
-        }
       } else {
         setError(response.error.message);
       }
@@ -64,6 +61,8 @@ export default function KycStatusPage() {
         setInfo("本人確認が承認されました。");
       } else if (returnedStatus === "rejected") {
         setInfo("本人確認が否認されました。再申請してください。");
+      } else if (response.ok && !response.data.isBasicProfileCompleted) {
+        setInfo("先に「名前・性別・生年月日」を設定してください。");
       } else {
         setInfo(null);
       }

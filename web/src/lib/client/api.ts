@@ -13,23 +13,6 @@ type ApiError = {
 
 export type ApiResponse<T> = ApiSuccess<T> | ApiError;
 
-const DEFAULT_USER_ID = "u1";
-const USER_ID_STORAGE_KEY = "consent-match-user-id";
-
-export function getCurrentUserId(): string {
-  if (typeof window === "undefined") {
-    return DEFAULT_USER_ID;
-  }
-  return localStorage.getItem(USER_ID_STORAGE_KEY) ?? DEFAULT_USER_ID;
-}
-
-export function setCurrentUserId(userId: string): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  localStorage.setItem(USER_ID_STORAGE_KEY, userId);
-}
-
 async function request<T>(
   method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE",
   path: string,
@@ -37,9 +20,9 @@ async function request<T>(
 ): Promise<ApiResponse<T>> {
   const response = await fetch(path, {
     method,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      "x-user-id": getCurrentUserId(),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });

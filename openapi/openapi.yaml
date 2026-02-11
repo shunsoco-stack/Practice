@@ -13,6 +13,127 @@ tags:
   - name: safety
   - name: admin
 paths:
+  /auth/register:
+    post:
+      tags: [onboarding]
+      summary: Register by email and send password setup link
+      operationId: registerByEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Registration accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiAuthRegisterResponse"
+
+  /auth/set-password:
+    post:
+      tags: [onboarding]
+      summary: Set password via email token
+      operationId: setPasswordByToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Password set and session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiAuthLoginResponse"
+
+  /auth/login:
+    post:
+      tags: [onboarding]
+      summary: Login with email and password
+      operationId: loginByEmailPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiAuthLoginResponse"
+
+  /auth/logout:
+    post:
+      tags: [onboarding]
+      summary: Logout current session
+      operationId: logout
+      responses:
+        "200":
+          description: Logout success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiOkResponse"
+
+  /auth/session:
+    get:
+      tags: [onboarding]
+      summary: Get current authentication session
+      operationId: getAuthSession
+      responses:
+        "200":
+          description: Session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiAuthSessionResponse"
+
+  /auth/dev/latest-email:
+    get:
+      tags: [onboarding]
+      summary: Get latest sent mail body for an address (dev)
+      operationId: getLatestDevEmail
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        "200":
+          description: Latest mail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiDevMailResponse"
+
   /onboarding/age-gate:
     post:
       tags: [onboarding]
@@ -728,6 +849,103 @@ components:
               enum: [not_started, in_progress, under_review, verified, rejected]
             isBasicProfileCompleted:
               type: boolean
+
+    ApiAuthRegisterResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          required: [success, email, expiresAt, isNewAccount, delivery]
+          properties:
+            success:
+              type: boolean
+            email:
+              type: string
+            expiresAt:
+              type: string
+              format: date-time
+            isNewAccount:
+              type: boolean
+            delivery:
+              type: object
+              required: [mode, accepted]
+              properties:
+                mode:
+                  type: string
+                  enum: [smtp, mock]
+                accepted:
+                  type: boolean
+                messageId:
+                  type: string
+                  nullable: true
+                previewUrl:
+                  type: string
+                  nullable: true
+
+    ApiAuthLoginResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          required: [success, userId, role, email]
+          properties:
+            success:
+              type: boolean
+            userId:
+              type: string
+            role:
+              type: string
+              enum: [user, admin]
+            email:
+              type: string
+
+    ApiAuthSessionResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          required: [authenticated]
+          properties:
+            authenticated:
+              type: boolean
+            user:
+              type: object
+              properties:
+                userId:
+                  type: string
+                role:
+                  type: string
+                email:
+                  type: string
+                expiresAt:
+                  type: string
+                  format: date-time
+
+    ApiDevMailResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            email:
+              type: string
+            subject:
+              type: string
+            textBody:
+              type: string
+            htmlBody:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
 
     ApiBasicProfileResponse:
       type: object

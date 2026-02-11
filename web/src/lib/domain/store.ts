@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import type {
   Block,
   BoundaryItem,
@@ -71,8 +71,66 @@ interface BasicProfileView {
   isCompleted: boolean;
 }
 
+interface AuthAccount {
+  email: string;
+  userId: string;
+  passwordHash: string | null;
+  isEmailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PasswordSetupToken {
+  token: string;
+  email: string;
+  userId: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+interface AuthSession {
+  token: string;
+  userId: string;
+  role: "user" | "admin";
+  email: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+interface SentEmail {
+  id: string;
+  to: string;
+  subject: string;
+  textBody: string;
+  htmlBody: string;
+  createdAt: string;
+}
+
 const now = () => new Date().toISOString();
 const DEFAULT_KYC_RETURN_PATH = "/kyc-status";
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function issuePasswordHash(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const derived = scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${derived}`;
+}
+
+function verifyPasswordHash(password: string, passwordHash: string): boolean {
+  const [salt, expectedHex] = passwordHash.split(":");
+  if (!salt || !expectedHex) {
+    return false;
+  }
+  const actual = scryptSync(password, salt, 64);
+  const expected = Buffer.from(expectedHex, "hex");
+  if (expected.length !== actual.length) {
+    return false;
+  }
+  return timingSafeEqual(expected, actual);
+}
 
 function isAdultByBirthDate(birthDate: string): boolean {
   const dob = new Date(birthDate);
@@ -92,6 +150,10 @@ function isAdultByBirthDate(birthDate: string): boolean {
 class InMemoryStore {
   private users = new Map<string, User>();
   private roles = new Map<string, RoleBinding["role"]>();
+  private accountsByEmail = new Map<string, AuthAccount>();
+  private passwordSetupTokens = new Map<string, PasswordSetupToken>();
+  private authSessions = new Map<string, AuthSession>();
+  private sentEmails: SentEmail[] = [];
   private termsVersions = new Map<string, TermsVersion>();
   private termsConsents: TermsConsent[] = [];
   private kycSessions = new Map<string, KycSession>();
@@ -279,10 +341,257 @@ class InMemoryStore {
       toUserId: "u1",
       createdAt: baseTime,
     });
+
+    this.seedAuthAccounts();
+  }
+
+  private seedAuthAccounts(): void {
+    this.createOrUpdateAccount({
+      email: "new_user@example.com",
+      userId: "u1",
+      password: null,
+      verified: false,
+    });
+    this.createOrUpdateAccount({
+      email: "mio@example.com",
+      userId: "u2",
+      password: "Password123!",
+      verified: true,
+    });
+    this.createOrUpdateAccount({
+      email: "hana@example.com",
+      userId: "u4",
+      password: "Password123!",
+      verified: true,
+    });
+    this.createOrUpdateAccount({
+      email: "admin@example.com",
+      userId: "u_admin",
+      password: "AdminPassword123!",
+      verified: true,
+    });
+  }
+
+  private createOrUpdateAccount(input: {
+    email: string;
+    userId: string;
+    password: string | null;
+    verified: boolean;
+  }): void {
+    const normalized = normalizeEmail(input.email);
+    const timestamp = now();
+    this.accountsByEmail.set(normalized, {
+      email: normalized,
+      userId: input.userId,
+      passwordHash: input.password ? issuePasswordHash(input.password) : null,
+      isEmailVerified: input.verified,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
   }
 
   getRole(userId: string): "user" | "admin" {
     return this.roles.get(userId) ?? "user";
+  }
+
+  private createUserForEmail(email: string): User {
+    const id = `u_${randomUUID().replace(/-/g, "").slice(0, 12)}`;
+    const timestamp = now();
+    const nicknameBase = email.split("@")[0] || "new_user";
+    const nickname = `${nicknameBase.slice(0, 20)}_${id.slice(-4)}`;
+    const user: User = {
+      id,
+      nickname,
+      birthDate: "2000-01-01",
+      gender: null,
+      isGenderLocked: false,
+      isBirthDateLocked: false,
+      region: "unset",
+      bio: "",
+      topPhotoUrl: null,
+      subPhotoUrls: [],
+      status: "active",
+      kycStatus: "pending",
+      visibility: "visible",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.users.set(id, user);
+    this.roles.set(id, "user");
+    this.consents.set(id, []);
+    this.boundaries.set(id, []);
+    return user;
+  }
+
+  private buildPasswordSetupToken(email: string, userId: string): PasswordSetupToken {
+    const createdAt = now();
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60).toISOString();
+    const token = randomUUID();
+    const setupToken: PasswordSetupToken = {
+      token,
+      email,
+      userId,
+      expiresAt,
+      createdAt,
+    };
+    this.passwordSetupTokens.set(token, setupToken);
+    return setupToken;
+  }
+
+  registerWithEmail(emailInput: string): {
+    email: string;
+    userId: string;
+    token: string;
+    expiresAt: string;
+    isNewAccount: boolean;
+  } {
+    const email = normalizeEmail(emailInput);
+    let account = this.accountsByEmail.get(email);
+    let isNewAccount = false;
+
+    if (!account) {
+      const user = this.createUserForEmail(email);
+      const timestamp = now();
+      account = {
+        email,
+        userId: user.id,
+        passwordHash: null,
+        isEmailVerified: false,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+      this.accountsByEmail.set(email, account);
+      isNewAccount = true;
+    }
+
+    const setupToken = this.buildPasswordSetupToken(email, account.userId);
+    return {
+      email,
+      userId: account.userId,
+      token: setupToken.token,
+      expiresAt: setupToken.expiresAt,
+      isNewAccount,
+    };
+  }
+
+  getPasswordSetupToken(token: string): PasswordSetupToken {
+    const setupToken = this.passwordSetupTokens.get(token);
+    if (!setupToken) {
+      throw new Error("invalid_password_setup_token");
+    }
+    if (new Date(setupToken.expiresAt).getTime() < Date.now()) {
+      this.passwordSetupTokens.delete(token);
+      throw new Error("expired_password_setup_token");
+    }
+    return setupToken;
+  }
+
+  completePasswordSetup(token: string, password: string): { userId: string; email: string } {
+    const setupToken = this.getPasswordSetupToken(token);
+    const account = this.accountsByEmail.get(setupToken.email);
+    if (!account) {
+      throw new Error("account_not_found");
+    }
+    const updatedAt = now();
+    this.accountsByEmail.set(setupToken.email, {
+      ...account,
+      passwordHash: issuePasswordHash(password),
+      isEmailVerified: true,
+      updatedAt,
+    });
+    this.passwordSetupTokens.delete(token);
+    return {
+      userId: account.userId,
+      email: setupToken.email,
+    };
+  }
+
+  loginWithEmailPassword(emailInput: string, password: string): {
+    token: string;
+    userId: string;
+    role: "user" | "admin";
+    email: string;
+    expiresAt: string;
+  } {
+    const email = normalizeEmail(emailInput);
+    const account = this.accountsByEmail.get(email);
+    if (!account || !account.passwordHash || !account.isEmailVerified) {
+      throw new Error("invalid_credentials");
+    }
+    if (!verifyPasswordHash(password, account.passwordHash)) {
+      throw new Error("invalid_credentials");
+    }
+    const token = randomUUID();
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
+    const session: AuthSession = {
+      token,
+      userId: account.userId,
+      role: this.getRole(account.userId),
+      email: account.email,
+      expiresAt,
+      createdAt: now(),
+    };
+    this.authSessions.set(token, session);
+    return {
+      token,
+      userId: session.userId,
+      role: session.role,
+      email: session.email,
+      expiresAt: session.expiresAt,
+    };
+  }
+
+  getSessionByToken(token: string): {
+    userId: string;
+    role: "user" | "admin";
+    email: string;
+    expiresAt: string;
+  } | null {
+    const session = this.authSessions.get(token);
+    if (!session) {
+      return null;
+    }
+    if (new Date(session.expiresAt).getTime() < Date.now()) {
+      this.authSessions.delete(token);
+      return null;
+    }
+    return {
+      userId: session.userId,
+      role: session.role,
+      email: session.email,
+      expiresAt: session.expiresAt,
+    };
+  }
+
+  logoutSession(token: string): void {
+    this.authSessions.delete(token);
+  }
+
+  saveSentEmail(input: {
+    to: string;
+    subject: string;
+    textBody: string;
+    htmlBody: string;
+  }): void {
+    this.sentEmails.push({
+      id: randomUUID(),
+      to: normalizeEmail(input.to),
+      subject: input.subject,
+      textBody: input.textBody,
+      htmlBody: input.htmlBody,
+      createdAt: now(),
+    });
+    if (this.sentEmails.length > 200) {
+      this.sentEmails.shift();
+    }
+  }
+
+  getLatestSentEmail(toInput: string): SentEmail | null {
+    const to = normalizeEmail(toInput);
+    const candidates = this.sentEmails
+      .filter((mail) => mail.to === to)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return candidates[0] ?? null;
   }
 
   getUser(userId: string): User {

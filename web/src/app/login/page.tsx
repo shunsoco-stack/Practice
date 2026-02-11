@@ -5,38 +5,30 @@ import { useState } from "react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
-import { api, getCurrentUserId, setCurrentUserId } from "@/lib/client/api";
-
-interface ProfileResponse {
-  profile: {
-    id: string;
-    nickname: string;
-  };
-}
-
-const demoUsers = [
-  { id: "u1", label: "u1 (新規ユーザー想定)" },
-  { id: "u2", label: "u2 (既存会員)" },
-  { id: "u4", label: "u4 (既存会員)" },
-  { id: "u_admin", label: "u_admin (管理者)" },
-];
+import { api } from "@/lib/client/api";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [userId, setUserId] = useState(getCurrentUserId());
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const loginWithUserId = async (targetUserId: string) => {
+  const login = async () => {
     setLoading(true);
     setError(null);
-    const previous = getCurrentUserId();
-    setCurrentUserId(targetUserId);
-    const response = await api.get<ProfileResponse>("/api/v1/me/profile");
+    const response = await api.post<{
+      success: true;
+      userId: string;
+      role: "user" | "admin";
+      email: string;
+    }>("/api/v1/auth/login", {
+      email,
+      password,
+    });
     setLoading(false);
     if (!response.ok) {
-      setCurrentUserId(previous);
-      setError("指定されたユーザーでログインできません。User IDを確認してください。");
+      setError(response.error.message);
       return;
     }
     router.push("/discovery");
@@ -49,7 +41,7 @@ export default function LoginPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">ログイン</h1>
             <p className="mt-2 text-sm text-gray-600">
-              すでに会員登録済みのユーザーは、User IDでログインできます。
+              会員登録済みのメールアドレスとパスワードでログインしてください。
             </p>
           </div>
 
@@ -60,10 +52,19 @@ export default function LoginPage() {
           )}
 
           <Input
-            label="User ID"
-            value={userId}
-            onChange={(event) => setUserId(event.target.value)}
-            placeholder="例: u2"
+            label="メールアドレス"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+          />
+
+          <Input
+            label="パスワード"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="パスワードを入力"
           />
 
           <div className="flex gap-3">
@@ -72,28 +73,23 @@ export default function LoginPage() {
             </Button>
             <Button
               fullWidth
-              onClick={() => void loginWithUserId(userId.trim())}
-              disabled={loading || userId.trim().length === 0}
+              onClick={() => void login()}
+              disabled={loading || email.trim().length === 0 || password.length === 0}
             >
               {loading ? "ログイン中..." : "ログイン"}
             </Button>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-gray-500">デモユーザー</p>
-            <div className="grid gap-2">
-              {demoUsers.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => void loginWithUserId(item.id)}
-                  className="cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
-                  disabled={loading}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+          <div className="text-sm text-gray-600">
+            新規登録がまだの場合は{" "}
+            <button
+              type="button"
+              onClick={() => router.push("/signup")}
+              className="font-medium text-teal-700 hover:underline"
+            >
+              こちら
+            </button>
+            からメール登録してください。
           </div>
         </Card>
       </div>

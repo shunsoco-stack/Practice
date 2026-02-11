@@ -1,5 +1,6 @@
 import type { ZodSchema } from "zod";
 import { NextRequest, NextResponse } from "next/server";
+import { AUTH_SESSION_COOKIE_NAME } from "@/lib/auth/session";
 import { store } from "@/lib/domain/store";
 
 export interface Actor {
@@ -8,6 +9,14 @@ export interface Actor {
 }
 
 export function getActor(request: NextRequest): Actor {
+  const sessionToken = request.cookies.get(AUTH_SESSION_COOKIE_NAME)?.value;
+  if (sessionToken) {
+    const session = store.getSessionByToken(sessionToken);
+    if (session) {
+      return { userId: session.userId, role: session.role };
+    }
+  }
+
   const fromHeader = request.headers.get("x-user-id")?.trim();
   const fromQuery = request.nextUrl.searchParams.get("userId")?.trim();
   const userId = fromHeader || fromQuery || "u1";
@@ -69,11 +78,31 @@ export function mapDomainError(error: unknown): NextResponse {
       return jsonError("user_not_found", "User not found.", 404);
     case "terms_version_not_found":
       return jsonError("terms_version_not_found", "Terms version was not found.", 404);
+    case "account_not_found":
+      return jsonError("account_not_found", "Account was not found.", 404);
     case "terms_not_accepted":
       return jsonError(
         "terms_not_accepted",
         "Accept all active terms before starting eKYC.",
         409,
+      );
+    case "invalid_credentials":
+      return jsonError(
+        "invalid_credentials",
+        "Email address or password is invalid.",
+        401,
+      );
+    case "invalid_password_setup_token":
+      return jsonError(
+        "invalid_password_setup_token",
+        "Password setup token is invalid.",
+        404,
+      );
+    case "expired_password_setup_token":
+      return jsonError(
+        "expired_password_setup_token",
+        "Password setup token has expired.",
+        410,
       );
     case "onboarding_profile_incomplete":
       return jsonError(

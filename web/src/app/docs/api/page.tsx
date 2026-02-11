@@ -1,6 +1,12 @@
 import Link from "next/link";
 
 const endpoints = [
+  ["POST", "/api/v1/auth/register"],
+  ["POST", "/api/v1/auth/set-password"],
+  ["POST", "/api/v1/auth/login"],
+  ["POST", "/api/v1/auth/logout"],
+  ["GET", "/api/v1/auth/session"],
+  ["GET", "/api/v1/auth/dev/latest-email?email={email}"],
   ["POST", "/api/v1/onboarding/age-gate"],
   ["GET", "/api/v1/onboarding/status"],
   ["GET/POST", "/api/v1/onboarding/basic-profile"],
@@ -66,13 +72,11 @@ export default function ApiDocPage() {
         </section>
 
         <section className="card p-5">
-          <h2 className="text-lg font-semibold">テスト用ヘッダー</h2>
+          <h2 className="text-lg font-semibold">認証方式</h2>
           <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-700 dark:text-slate-300">
+            <li>通常はログイン後のセッションCookieで認証されます。</li>
             <li>
-              <code>x-user-id: u1</code> (通常ユーザー)
-            </li>
-            <li>
-              <code>x-user-id: u_admin</code> (管理者ユーザー)
+              開発検証時のみ <code>x-user-id</code> ヘッダーで擬似ユーザー指定が可能です。
             </li>
           </ul>
         </section>

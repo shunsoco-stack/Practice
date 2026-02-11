@@ -33,9 +33,13 @@ x-user-id: u1
 ## API examples
 
 ```bash
-curl -s http://localhost:3000/api/v1/onboarding/status -H "x-user-id: u1"
-curl -s -X POST http://localhost:3000/api/v1/likes/u2 -H "x-user-id: u1"
-curl -s http://localhost:3000/api/v1/matches -H "x-user-id: u1"
+curl -s -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com"}'
+
+curl -s -X POST http://localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"mio@example.com","password":"Password123!"}'
 ```
 
 ## Notes

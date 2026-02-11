@@ -51,7 +51,7 @@ export default function Home() {
             </a>
             <button
               type="button"
-              onClick={() => router.push("/age-gate")}
+              onClick={() => router.push("/signup")}
               className="whitespace-nowrap rounded-full bg-gradient-to-r from-primary-500 to-accent-coral px-6 py-2.5 text-sm font-medium text-white shadow-lg shadow-primary-200 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary-300"
             >
               はじめる
@@ -80,7 +80,7 @@ export default function Home() {
               </a>
               <button
                 type="button"
-                onClick={() => router.push("/age-gate")}
+                onClick={() => router.push("/signup")}
                 className="w-full whitespace-nowrap rounded-full bg-gradient-to-r from-primary-500 to-accent-coral px-6 py-3 text-sm font-medium text-white shadow-lg"
               >
                 はじめる
@@ -165,7 +165,7 @@ export default function Home() {
               <div className="flex flex-col justify-center gap-4 sm:flex-row md:justify-start">
                 <button
                   type="button"
-                  onClick={() => router.push("/age-gate")}
+                  onClick={() => router.push("/signup")}
                   className="whitespace-nowrap rounded-full bg-gradient-to-r from-primary-500 to-accent-coral px-8 py-4 text-base font-semibold text-white shadow-xl shadow-primary-200/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-300/50"
                 >
                   はじめる
@@ -462,7 +462,7 @@ export default function Home() {
           <div className="mt-12 text-center">
             <button
               type="button"
-              onClick={() => router.push("/age-gate")}
+              onClick={() => router.push("/signup")}
               className="whitespace-nowrap rounded-full bg-gradient-to-r from-primary-500 to-accent-coral px-10 py-4 text-base font-semibold text-white shadow-xl shadow-primary-200/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-300/50"
             >
               今すぐはじめる
@@ -481,7 +481,7 @@ export default function Home() {
           </p>
           <button
             type="button"
-            onClick={() => router.push("/age-gate")}
+            onClick={() => router.push("/signup")}
             className="rounded-full bg-white px-10 py-4 text-base font-semibold text-primary-600 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
           >
             無料ではじめる →

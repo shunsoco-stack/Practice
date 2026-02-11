@@ -4,6 +4,20 @@ export const ageGateSchema = z.object({
   birthDate: z.iso.date(),
 });
 
+export const registerSchema = z.object({
+  email: z.string().trim().email(),
+});
+
+export const loginSchema = z.object({
+  email: z.string().trim().email(),
+  password: z.string().min(8).max(72),
+});
+
+export const setPasswordSchema = z.object({
+  token: z.string().uuid(),
+  password: z.string().min(8).max(72),
+});
+
 export const termsConsentSchema = z.object({
   termsVersionId: z.string().min(3),
 });

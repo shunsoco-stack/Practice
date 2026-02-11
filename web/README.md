@@ -14,6 +14,9 @@ npm run build
 ## Key routes
 
 - `/` - overview dashboard
+- `/signup` - email registration
+- `/auth/set-password` - set password from emailed URL
+- `/login` - email/password login
 - `/playground` - browser API testing screen
 - `/ekyc/mock` - mock eKYC provider flow
 - `/docs/architecture`
