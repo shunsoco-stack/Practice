@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -29,7 +29,6 @@ function toDisplayStatus(status: OnboardingStatus): DisplayKycStatus {
 
 export default function KycStatusPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [status, setStatus] = useState<DisplayKycStatus>("not_started");
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -39,7 +38,10 @@ export default function KycStatusPage() {
   useEffect(() => {
     let active = true;
     const load = async () => {
-      const returnedStatus = searchParams.get("kyc");
+      const returnedStatus =
+        typeof window === "undefined"
+          ? null
+          : new URLSearchParams(window.location.search).get("kyc");
       const response = await api.get<OnboardingStatus>("/api/v1/onboarding/status");
       if (!active) {
         return;
@@ -62,7 +64,7 @@ export default function KycStatusPage() {
     return () => {
       active = false;
     };
-  }, [searchParams]);
+  }, []);
 
   const startKyc = useCallback(async () => {
     setProcessing(true);
